@@ -42,12 +42,12 @@ function makeHtmlBoard() {
 	}
 	htmlBoard.append(topRow);
 
-	// Create a HTML table row and table data elements for game board. Sets an id of '
+	// Create a HTML table row and table data elements for game board. Sets an id of 'row index - column index' for each table data element
 	for (let rowIdx = 0; rowIdx < HEIGHT; rowIdx++) {
 		const row = document.createElement('tr');
 		for (let colIdx = 0; colIdx < WIDTH; colIdx++) {
 			const cell = document.createElement('td');
-			cell.setAttribute('id', `${rowIdcolIdx}-${colIdx}`);
+			cell.setAttribute('id', `${rowIdx}-${colIdx}`);
 			row.append(cell);
 		}
 		htmlBoard.append(row);
@@ -57,36 +57,45 @@ function makeHtmlBoard() {
 /** findSpotForCol: given column x, return top empty y (null if filled) */
 
 function findSpotForCol(x) {
-	// TODO: write the real version of this, rather than always returning 0
-	return 0;
+	for (let y = HEIGHT - 1; y >= 0; y--) {
+		if (board[y][x].length === 0) {
+			return y;
+		}
+	}
+	return null;
 }
 
 /** placeInTable: update DOM to place piece into HTML table of board */
 
 function placeInTable(y, x) {
 	// TODO: make a div and insert into correct table cell
+	const piece = document.createElement('div');
+	piece.classList.add('piece', `p${currPlayer}`);
+	const cell = document.querySelector(`#\\3${y}-${x}`); // ? Why does this selector not work with just the id? It required the \3 before the x.
+	cell.append(piece);
 }
 
 /** endGame: announce game end */
 
 function endGame(msg) {
-	// TODO: pop up alert message
+	alert(msg);
 }
 
 /** handleClick: handle click of column top to play piece */
 
 function handleClick(evt) {
-	// get x from ID of clicked cell
-	var x = +evt.target.id;
+	// get x coor from ID of clicked cell and convert to number
+	const x = +evt.target.id;
+	// console.log(x,typeof x);
 
 	// get next spot in column (if none, ignore click)
-	var y = findSpotForCol(x);
+	const y = findSpotForCol(x);
 	if (y === null) {
 		return;
 	}
 
-	// place piece in board and add to HTML table
-	// TODO: add line to update in-memory board
+	// place piece in board as value of currPlayer and add to HTML table
+	board[y][x] = currPlayer;
 	placeInTable(y, x);
 
 	// check for win
@@ -95,16 +104,19 @@ function handleClick(evt) {
 	}
 
 	// check for tie
-	// TODO: check if all cells in board are filled; if so call, call endGame
+	if (board.every((row) => row.every((cell) => cell.length !== 0))) {
+		endGame('The game has ended in a tie!');
+	}
 
 	// switch players
-	// TODO: switch currPlayer 1 <-> 2
+	currPlayer = currPlayer === 1 ? 2 : 1;
 }
 
 /** checkForWin: check board cell-by-cell for "does a win start here?" */
 
 function checkForWin() {
 	function _win(cells) {
+		// ? What does the underscore prefix indicate? Naming standard for functions in functions?
 		// Check four cells to see if they're all color of current player
 		//  - cells: list of four (y, x) cells
 		//  - returns true if all are legal coordinates & all match currPlayer
@@ -112,15 +124,17 @@ function checkForWin() {
 		return cells.every(([ y, x ]) => y >= 0 && y < HEIGHT && x >= 0 && x < WIDTH && board[y][x] === currPlayer);
 	}
 
-	// TODO: read and understand this code. Add comments to help you.
+	// Loop through each row
+	for (let y = 0; y < HEIGHT; y++) {
+		//Loop through each column cell within the row
+		for (let x = 0; x < WIDTH; x++) {
+			// Sets possible win conditions to variables for clarity and ease of use
+			const horiz = [ [ y, x ], [ y, x + 1 ], [ y, x + 2 ], [ y, x + 3 ] ];
+			const vert = [ [ y, x ], [ y + 1, x ], [ y + 2, x ], [ y + 3, x ] ];
+			const diagDR = [ [ y, x ], [ y + 1, x + 1 ], [ y + 2, x + 2 ], [ y + 3, x + 3 ] ];
+			const diagDL = [ [ y, x ], [ y + 1, x - 1 ], [ y + 2, x - 2 ], [ y + 3, x - 3 ] ];
 
-	for (var y = 0; y < HEIGHT; y++) {
-		for (var x = 0; x < WIDTH; x++) {
-			var horiz = [ [ y, x ], [ y, x + 1 ], [ y, x + 2 ], [ y, x + 3 ] ];
-			var vert = [ [ y, x ], [ y + 1, x ], [ y + 2, x ], [ y + 3, x ] ];
-			var diagDR = [ [ y, x ], [ y + 1, x + 1 ], [ y + 2, x + 2 ], [ y + 3, x + 3 ] ];
-			var diagDL = [ [ y, x ], [ y + 1, x - 1 ], [ y + 2, x - 2 ], [ y + 3, x - 3 ] ];
-
+			// Check all possible win conditions from every cell on the board by checking all the cells within the win condition's range to see if they are all the same player.
 			if (_win(horiz) || _win(vert) || _win(diagDR) || _win(diagDL)) {
 				return true;
 			}
