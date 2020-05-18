@@ -1,36 +1,176 @@
 /* game board table */
-
-#board td {
-	width: 50px;
-	height: 50px;
-	border: solid 1px #666;
+* {
+	margin: 0;
+	padding: 0;
+	box-sizing: border-box;
 }
 
-/* pieces are div within game table cells: draw as colored circles */
-
-.piece {
-	/* TODO: make into circles */
-	margin: 5px;
-	width: 80%;
-	height: 80%;
-	border-radius: 50%;
+h1 {
+	text-transform: uppercase;
+	text-align: center;
+	color: white;
+	margin: 40px;
 }
 
-.p1 {
-	background-color: cyan;
+body {
+	background-color: black;
+}
+
+#game {
+	display: flex;
+	justify-content: center;
+	height: 80vh;
+}
+
+.player-info {
+	display: flex;
+	width: 150px;
+	padding: 10px;
+	justify-content: center;
+	margin: 10px;
+	border: solid 1px red;
+	color: white;
+}
+
+#board {
+	display: flex;
+	border-collapse: collapse;
+	flex-direction: column;
+	height: 100%;
+	/* height: 75vh; */
+	/* padding: 10% 0; */
+	border: solid 2px red;
+	/* transition: 250ms; */
+}
+tr {
+	display: flex;
+	height: 100%;
+	width: 100%;
+	justify-content: center;
+	align-items: center;
+}
+td {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	height: 100%;
+	width: 100%;
+}
+td:not(.column-top-cell) {
+	border: solid 1px yellow;
+}
+.column-top-cell {
+	border: solid 1px white;
+	opacity: 50%;
+}
+#column-top {
+	display: flex;
+	position: relative;
+	justify-content: center;
+	align-items: center;
+	/* border: dashed 1px white; */
+}
+
+/* .p1 {
+	background-color: var(--indicator-piece-color, cyan);
+	border: ridge var(--border-size) var(--indicator-piece-color, cyan);
 }
 .p2 {
-	background-color: magenta;
+	background-color: var(--indicator-piece-color, magenta);
+	border: ridge var(--border-size) var(--indicator-piece-color, magenta);
+} */
+.p1 {
+	animation-name: inner-glow-p1;
+	animation-duration: 5s;
+	animation-timing-function: ease-in-out;
+	animation-iteration-count: infinite;
+	animation-fill-mode: forwards;
 }
-/* TODO: make pieces red/blue,  depending on player 1/2 piece */
-
-/* column-top is table row of clickable areas for each column */
-
-#column-top td {
-	border: dashed 1px lightgray;
+.p2 {
+	animation-name: inner-glow-p2;
+	animation-duration: 5s;
+	animation-timing-function: ease-in-out;
+	animation-iteration-count: infinite;
+	animation-fill-mode: forwards;
+}
+.piece {
+	/* background-color: var(--indicator-piece-color, cyan); */
+	border: ridge var(--border-size) var(--indicator-piece-color, cyan);
+	border-radius: 50%;
+	height: var(--piece-size);
+	width: var(--piece-size);
+	transition: 250ms;
 }
 
-#column-top td:hover {
-	background-color: gold;
-	/* border-radius: 50%; */
+.piece:not(#indicator-piece) {
+	margin: auto;
+}
+
+.piece.drop {
+	position: absolute;
+	background-color: transparent;
+
+	left: var(--drop-start);
+	top: 0px;
+	z-index: -2;
+
+	animation-name: drop;
+	animation-duration: var(--drop-time, 1s);
+	animation-timing-function: ease-in;
+	animation-iteration-count: 1;
+	animation-fill-mode: forwards;
+}
+
+#indicator-piece {
+	position: absolute;
+	background-color: transparent;
+	margin-left: 1.35%;
+
+	z-index: -1;
+}
+#indicator-piece.hide {
+	display: none;
+}
+/* .on-board {
+
+} */
+
+/* Animation for dropping piece after clicking desired column */
+@keyframes drop {
+	0% {
+		top: 0px;
+	}
+
+	85% {
+		top: var(--drop-end);
+	}
+	95% {
+		top: var(--drop-bounce);
+	}
+	100% {
+		top: var(--drop-end);
+	}
+}
+
+@keyframes inner-glow-p1 {
+	0% {
+		background-color: var(--indicator-piece-color);
+	}
+	50% {
+		background-color: cyan;
+	}
+	100% {
+		background-color: var(--indicator-piece-color);
+	}
+}
+@keyframes inner-glow-p2 {
+	0% {
+		background-color: var(--indicator-piece-color);
+	}
+	50% {
+		background-color: magenta;
+	}
+	100% {
+		background-color: var(--indicator-piece-color);
+	}
 }
