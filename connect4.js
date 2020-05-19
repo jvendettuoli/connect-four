@@ -4,6 +4,14 @@
  * Player 1 and 2 alternate turns. On each turn, a piece is dropped down a
  * column until a player gets four-in-a-row (horiz, vert, or diag) or until
  * board fills (tie)
+ * 
+ * 
+ * TODO:
+ * - Have indicator piece do a flip on click to drop
+ * - Have Player Wins only have border animation if it is that player's turn
+ * - Save board after game to be able to see past games
+ * - Switch which player goes first each game
+ * - Improve AI
  */
 
 // Number of columns (WIDTH) and rows (HEIGHT) of game board
@@ -11,10 +19,22 @@ const WIDTH = 7;
 const HEIGHT = 6;
 
 let currPlayer = 1; // active player: 1 or 2
-const board = []; // array of rows, each row is array of cells  (board[y][x])
+let board = []; // array of rows, each row is array of cells  (board[y][x])
+let aiMode = false;
 
 //set event handler for window resize to control board height/width
 window.addEventListener('resize', resizeBoard);
+
+// sets event handler for toggling AI on and off
+const aiButton = document.querySelector('button');
+aiButton.addEventListener('click', () => {
+	aiMode = aiMode === false ? true : false;
+	aiButton.innerText = aiButton.innerText === 'AI: ON' ? 'AI: OFF' : 'AI: ON';
+});
+
+/////REMOVE
+aiButton.click();
+//////
 
 /** makeBoard: create in-JS board structure:
  *    board = array of rows, each row is array of cells  (board[y][x])
@@ -39,6 +59,9 @@ function makeHtmlBoard() {
 	topRow.setAttribute('id', 'column-top');
 	topRow.addEventListener('click', handleClick);
 	topRow.addEventListener('mouseleave', handleHover); // ? Better way to handle mouse hover?
+	const aiDisplayBlock = document.createElement('div');
+	aiDisplayBlock.classList.add('block', 'hide');
+	topRow.append(aiDisplayBlock);
 
 	const indicatorPiece = document.createElement('div');
 	indicatorPiece.setAttribute('id', 'indicator-piece');
@@ -96,6 +119,7 @@ function scalePieces() {
 
 /** findSpotForCol: given column x, return top empty y (null if filled) */
 function findSpotForCol(x) {
+	console.log(x);
 	for (let y = HEIGHT - 1; y >= 0; y--) {
 		if (board[y][x].length === 0) {
 			return y;
@@ -108,7 +132,6 @@ function findSpotForCol(x) {
 function placeInTable(y, x) {
 	const piece = document.createElement('div');
 	const indicatorRow = document.querySelector('#column-top');
-	const indicatorPiece = document.querySelector('#indicator-piece');
 	const cell = document.querySelector(`#\\3${y}-${x}`); // ? Why does this selector not work with just the id? It required the \3 before the x.
 
 	piece.classList.add('piece', `p${currPlayer}`, 'drop');
@@ -117,11 +140,9 @@ function placeInTable(y, x) {
 	scalePieces();
 
 	if (currPlayer === 1) {
-		// piece.style.backgroundColor = 'cyan';
 		piece.style.borderColor = 'cyan';
 	}
 	else {
-		// piece.style.backgroundColor = 'magenta';
 		piece.style.borderColor = 'magenta';
 	}
 
@@ -133,7 +154,7 @@ function dropPiece(piece, cell, indicatorRow, x, y) {
 	piece.style.setProperty(
 		'--drop-start',
 		`${x * (indicatorRow.getBoundingClientRect().width / WIDTH) +
-			indicatorRow.getBoundingClientRect().width * 0.014}px`
+			indicatorRow.getBoundingClientRect().width * 0.012}px`
 	);
 	// Sets drop piece's end location for animation, based on board size
 	piece.style.setProperty(
@@ -154,17 +175,56 @@ function dropPiece(piece, cell, indicatorRow, x, y) {
 		piece.classList.remove('drop');
 		piece.classList.add('on-board');
 		cell.append(piece);
+		resizeBoard();
 	}, 1000 * ((y + 1) / HEIGHT) + 100);
 }
 
 /** endGame: announce game end */
-function endGame(msg) {
-	alert(msg);
+function endGame(msg, winner) {
+	updateSessionScore(winner);
+	updateDisplayScore();
+	endGameReset(msg);
+}
+
+// Displays who won and resets gameboard for next match
+function endGameReset(msg) {
+	const fixedSplash = document.createElement('div');
+	document.body.append(fixedSplash);
+	fixedSplash.innerText = msg;
+	fixedSplash.classList.add('endgame');
+	setTimeout(() => {
+		fixedSplash.remove();
+		board = [];
+		currPlayer = 1;
+		makeBoard();
+		document.querySelector('#board').innerHTML = '';
+		makeHtmlBoard();
+		resizeBoard();
+		toggleGameBoardStyle;
+		updateDisplayScore();
+	}, 4000);
+}
+
+// Update sessionStorage with the number of wins for each player. Check sessionStorage for existing score or initilizatizes to 0 - 0
+function updateSessionScore(winner) {
+	const winTracker = JSON.parse(sessionStorage.getItem('wins')) || { p1: 0, p2: 0 };
+	winTracker[`p${winner}`] += 1;
+
+	sessionStorage.setItem('wins', JSON.stringify(winTracker));
+}
+// Updates score display from sessinoStorage
+function updateDisplayScore() {
+	const p1Score = document.querySelector('#p1-score');
+	const p2Score = document.querySelector('#p2-score');
+
+	p1Score.innerText = JSON.parse(sessionStorage.getItem('wins')).p1;
+	p2Score.innerText = JSON.parse(sessionStorage.getItem('wins')).p2;
 }
 
 /** handleClick: handle click of column top to play piece */
 function handleClick(evt) {
 	// get x coor from ID of clicked cell and convert to number
+	if (evt.target.classList.value === 'block') return;
 	const x = +evt.target.id;
 
 	// get next spot in column (if none, ignore click)
@@ -178,8 +238,8 @@ function handleClick(evt) {
 	placeInTable(y, x);
 
 	// check for win
-	if (checkForWin()) {
-		return endGame(`Player ${currPlayer} won!`);
+	if (checkForWin(board, currPlayer)) {
+		return endGame(`Player ${currPlayer} won!`, currPlayer);
 	}
 
 	// check for tie
@@ -187,11 +247,25 @@ function handleClick(evt) {
 		endGame('The game has ended in a tie!');
 	}
 
-	// switch players
+	// switch players after move
 	currPlayer = currPlayer === 1 ? 2 : 1;
 
 	// Sets the style of the board depending on the current player
 	toggleGameBoardStyle();
+
+	// If AI Mode is active, clocks the player out of board and takes AI's turn
+	if (aiMode === true && currPlayer === 2) {
+		document.querySelector('#indicator-piece').classList.add('hide');
+		const aiDisplayBlock = document.querySelector('.block');
+		aiDisplayBlock.classList.remove('hide');
+
+		setTimeout(() => {
+			aiDisplayBlock.classList.add('hide');
+			document.querySelector('#indicator-piece').classList.remove('hide');
+
+			aiPlayer();
+		}, 1500);
+	}
 }
 
 // Handles hovering mouse over possible drop spots by displaying indicator piece and moving it based on column
@@ -222,14 +296,14 @@ function toggleGameBoardStyle() {
 
 /** checkForWin: check board cell-by-cell for "does a win start here?" */
 
-function checkForWin() {
+function checkForWin(gameBoard, player) {
 	function _win(cells) {
 		// ? What does the underscore prefix indicate? Naming standard for functions in functions?
 		// Check four cells to see if they're all color of current player
 		//  - cells: list of four (y, x) cells
 		//  - returns true if all are legal coordinates & all match currPlayer
 
-		return cells.every(([ y, x ]) => y >= 0 && y < HEIGHT && x >= 0 && x < WIDTH && board[y][x] === currPlayer);
+		return cells.every(([ y, x ]) => y >= 0 && y < HEIGHT && x >= 0 && x < WIDTH && gameBoard[y][x] === player);
 	}
 
 	// Loop through each row
@@ -242,7 +316,7 @@ function checkForWin() {
 			const diagDR = [ [ y, x ], [ y + 1, x + 1 ], [ y + 2, x + 2 ], [ y + 3, x + 3 ] ];
 			const diagDL = [ [ y, x ], [ y + 1, x - 1 ], [ y + 2, x - 2 ], [ y + 3, x - 3 ] ];
 
-			// Check all possible win conditions from every cell on the board by checking all the cells within the win condition's range to see if they are all the same player.
+			// Check all possible win conditions from every cell on the board by checking all the cells within the win condition's range to see if they are all the same player and legal moves.
 			if (_win(horiz) || _win(vert) || _win(diagDR) || _win(diagDL)) {
 				return true;
 			}
@@ -250,6 +324,63 @@ function checkForWin() {
 	}
 }
 
+function aiPlayer() {
+	const indicatorRow = document.querySelector('#column-top');
+	// console.log(indicatorRow.childNodes[1].click());
+
+	const boardCopy = copyBoard(board);
+
+	// Checks if cell has a played piece and returns true is so
+	function _checkForFilled(y, x) {
+		if (boardCopy[y][x].length !== 0) {
+			return true;
+		}
+	}
+
+	// Checks if a given player has a winning move next turn
+	function _checkforWinOrBlock(y, x, player) {
+		boardCopy[y][x] = player;
+
+		if (checkForWin(boardCopy, player)) {
+			indicatorRow.childNodes[x + 2].click();
+			return true;
+		}
+		boardCopy[y][x] = [];
+	}
+
+	// AI's move prioritization
+	//First checks if it has a winning move and plays it.
+	for (let y = 0; y < HEIGHT; y++) {
+		for (let x = 0; x < WIDTH; x++) {
+			if (_checkForFilled(y, x)) continue;
+
+			if (_checkforWinOrBlock(y, x, 2)) return;
+		}
+	}
+	//Second checks if it needs to block a winning move from the other player
+	for (let y = 0; y < HEIGHT; y++) {
+		for (let x = 0; x < WIDTH; x++) {
+			if (_checkForFilled(y, x)) continue;
+
+			if (_checkforWinOrBlock(y, x, 1)) return;
+		}
+	}
+	//Finally it plays the left most it can
+	for (let y = 0; y < HEIGHT; y++) {
+		for (let x = 0; x < WIDTH; x++) {
+			if (_checkForFilled(y, x)) continue;
+
+			indicatorRow.childNodes[x + 2].click();
+			return;
+		}
+	}
+}
+
+function copyBoard(currentBoard) {
+	return currentBoard.map((inner) => inner.slice());
+}
+
 makeBoard();
 makeHtmlBoard();
 resizeBoard();
+updateDisplayScore();

@@ -2,14 +2,31 @@
 <head>
   <title>Connect 4</title>
   <link href="connect4.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
 </head>
 <body>
 
-<h1>Connect Four</h1>
+<h1>
+  <div class="player-info" id="player1"> <div> Player 1</div> <div id="p1-score">0</div>  </div>
+
+  <div>C</div>
+  <div><div class="title-piece"></div></div>
+  <div>N</div>
+  <div>N</div>
+  <div>E</div>
+  <div>C</div>
+  <div>T</div>
+  <div>&nbsp</div>
+  <div>F</div>
+  <div><div class="title-piece" style="border-color: magenta;"></div></div>
+  <div>U</div>
+  <div>R</div>
+  <div class="player-info"  id="player2"> <div> Player 2</div> <div id="p2-score">0</div></div>
+  <button>AI: OFF</button>
+</h1>
+<hr>
 <div id="game">
-  <div class="player-info" id="player1">Player 1</div>
   <table id="board"></table>
-  <div class="player-info"  id="player2">Player 2</div>
 </div>
 
 <script src="connect4.js"></script>
