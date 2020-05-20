@@ -11,7 +11,9 @@
  * - Have Player Wins only have border animation if it is that player's turn
  * - Save board after game to be able to see past games
  * - Switch which player goes first each game
- * - Improve AI
+ * - Improve AI by implementing negamax
+ * - Improve AI by having an array of valid moves left, to not search through the whole board each move
+ * - Fix Player 1 Wins being lost offscreen at very small sizes
  */
 
 // Number of columns (WIDTH) and rows (HEIGHT) of game board
@@ -25,22 +27,17 @@ let aiMode = false;
 //set event handler for window resize to control board height/width
 window.addEventListener('resize', resizeBoard);
 
-// sets event handler for toggling AI on and off
+// sets event handler for toggling AI on and off. Default set to off
 const aiButton = document.querySelector('button');
 aiButton.addEventListener('click', () => {
 	aiMode = aiMode === false ? true : false;
 	aiButton.innerText = aiButton.innerText === 'AI: ON' ? 'AI: OFF' : 'AI: ON';
 });
 
-/////REMOVE
-aiButton.click();
-//////
-
 /** makeBoard: create in-JS board structure:
  *    board = array of rows, each row is array of cells  (board[y][x])
  *    based on WIDTH and HEIGHT variables 
  */
-
 function makeBoard() {
 	for (let rowIdx = 0; rowIdx < HEIGHT; rowIdx++) {
 		board.push([]);
@@ -59,10 +56,12 @@ function makeHtmlBoard() {
 	topRow.setAttribute('id', 'column-top');
 	topRow.addEventListener('click', handleClick);
 	topRow.addEventListener('mouseleave', handleHover); // ? Better way to handle mouse hover?
+	// aiDisplayBlock will be active when AI is on, to prevent accidental multiple clicks
 	const aiDisplayBlock = document.createElement('div');
 	aiDisplayBlock.classList.add('block', 'hide');
 	topRow.append(aiDisplayBlock);
 
+	// Indicator piece is the one shown in the top row when choosing where to place
 	const indicatorPiece = document.createElement('div');
 	indicatorPiece.setAttribute('id', 'indicator-piece');
 	indicatorPiece.classList.add('hide', 'piece');
@@ -73,7 +72,7 @@ function makeHtmlBoard() {
 		const headCell = document.createElement('td');
 		headCell.setAttribute('id', colIdx);
 		headCell.classList.add('column-top-cell');
-		headCell.addEventListener('mouseenter', handleHover);
+		headCell.addEventListener('mouseenter', handleHover); //Other part of mouse hover animation
 		topRow.append(headCell);
 	}
 	htmlBoard.append(topRow);
@@ -119,7 +118,6 @@ function scalePieces() {
 
 /** findSpotForCol: given column x, return top empty y (null if filled) */
 function findSpotForCol(x) {
-	console.log(x);
 	for (let y = HEIGHT - 1; y >= 0; y--) {
 		if (board[y][x].length === 0) {
 			return y;
@@ -149,6 +147,7 @@ function placeInTable(y, x) {
 	dropPiece(piece, cell, indicatorRow, x, y);
 }
 
+// Handles the animation for the dropping piece by calculating distances based on current board size
 function dropPiece(piece, cell, indicatorRow, x, y) {
 	// Sets drop piece's starting location for animation, based on board size
 	piece.style.setProperty(
@@ -192,6 +191,7 @@ function endGameReset(msg) {
 	document.body.append(fixedSplash);
 	fixedSplash.innerText = msg;
 	fixedSplash.classList.add('endgame');
+	// After timeout the splash screen is removed, board and player are reset, a new board is created both for HTML and game state, and styles are updated
 	setTimeout(() => {
 		fixedSplash.remove();
 		board = [];
@@ -212,7 +212,7 @@ function updateSessionScore(winner) {
 
 	sessionStorage.setItem('wins', JSON.stringify(winTracker));
 }
-// Updates score display from sessinoStorage
+// Updates score display from sessionStorage
 function updateDisplayScore() {
 	const p1Score = document.querySelector('#p1-score');
 	const p2Score = document.querySelector('#p2-score');
@@ -253,7 +253,7 @@ function handleClick(evt) {
 	// Sets the style of the board depending on the current player
 	toggleGameBoardStyle();
 
-	// If AI Mode is active, clocks the player out of board and takes AI's turn
+	// If AI Mode is active, locks the player out of board and takes AI's turn
 	if (aiMode === true && currPlayer === 2) {
 		document.querySelector('#indicator-piece').classList.add('hide');
 		const aiDisplayBlock = document.querySelector('.block');
@@ -264,7 +264,7 @@ function handleClick(evt) {
 			document.querySelector('#indicator-piece').classList.remove('hide');
 
 			aiPlayer();
-		}, 1500);
+		}, 1250);
 	}
 }
 
@@ -286,8 +286,7 @@ function handleHover(evt) {
 	}
 }
 
-//switch game board styling based on player
-
+//switch game board styling based on player. Currently only changes indicator piece color
 function toggleGameBoardStyle() {
 	const topRow = document.querySelector('#column-top');
 	if (currPlayer === 1) topRow.style.setProperty('--indicator-piece-color', 'rgba(0,255,255,1)');
@@ -295,7 +294,6 @@ function toggleGameBoardStyle() {
 }
 
 /** checkForWin: check board cell-by-cell for "does a win start here?" */
-
 function checkForWin(gameBoard, player) {
 	function _win(cells) {
 		// ? What does the underscore prefix indicate? Naming standard for functions in functions?
@@ -326,19 +324,39 @@ function checkForWin(gameBoard, player) {
 
 function aiPlayer() {
 	const indicatorRow = document.querySelector('#column-top');
-	// console.log(indicatorRow.childNodes[1].click());
-
 	const boardCopy = copyBoard(board);
 
+	// Checks if the cell is playable, in that there is a piece or base level right below it
+	function _isPlayable(y, x) {
+		if (y === HEIGHT - 1) return true;
+		else if (Array.isArray(boardCopy[y + 1][x])) {
+			return false;
+		}
+		return true;
+	}
+
 	// Checks if cell has a played piece and returns true is so
-	function _checkForFilled(y, x) {
+	function _isFilled(y, x) {
 		if (boardCopy[y][x].length !== 0) {
 			return true;
 		}
+		return false;
+	}
+
+	// Checks if placing a piece would setup an otherwise preventable win for opponent on next turn
+	function _allowsAccidentalWin(y, x, player) {
+		if (y === 0) return false;
+		boardCopy[y - 1][x] = player;
+		if (checkForWin(boardCopy, player)) {
+			boardCopy[y - 1][x] = [];
+
+			return true;
+		}
+		return false;
 	}
 
 	// Checks if a given player has a winning move next turn
-	function _checkforWinOrBlock(y, x, player) {
+	function _checkForWinOrBlock(y, x, player) {
 		boardCopy[y][x] = player;
 
 		if (checkForWin(boardCopy, player)) {
@@ -348,38 +366,117 @@ function aiPlayer() {
 		boardCopy[y][x] = [];
 	}
 
+	//Checks if there are two opponent pieces adjacent that could create a trap
+	function _checkforTrap(y, x, player) {
+		// Checks cells that have the pattern of two open spots, two opponent player pieces, and one open spot
+		const horizLeftBound = [ [ y, x - 1 ], [ y, x ], [ y, x + 1 ], [ y, x + 2 ], [ y, x + 3 ] ];
+		// Checks all spots are legal
+		if (horizLeftBound.every(([ y, x ]) => y >= 0 && y < HEIGHT && x >= 0 && x < WIDTH)) {
+			// Checks if the opponent has two pieces adjacent
+			if (boardCopy[y][x + 1] === player && boardCopy[y][x + 2] === player) {
+				// Checks the adjacent spots are empty
+				if (
+					Array.isArray(boardCopy[y][x - 1]) &&
+					Array.isArray(boardCopy[y][x]) &&
+					Array.isArray(boardCopy[y][x + 3])
+				) {
+					// Places in the left most spot to block trap
+					indicatorRow.childNodes[x + 2].click();
+					return true;
+				}
+			}
+		}
+		//Repeats check but for rows that only have one open spot on the left
+		const horizRightBound = [ [ y, x ], [ y, x + 1 ], [ y, x + 2 ], [ y, x + 3 ], [ y, x + 4 ] ];
+		if (horizRightBound.every(([ y, x ]) => y >= 0 && y < HEIGHT && x >= 0 && x < WIDTH)) {
+			if (boardCopy[y][x + 1] === player && boardCopy[y][x + 2] === player) {
+				if (
+					Array.isArray(boardCopy[y][x]) &&
+					Array.isArray(boardCopy[y][x + 3]) &&
+					Array.isArray(boardCopy[y][x + 4])
+				) {
+					indicatorRow.childNodes[x + 2].click();
+					return true;
+				}
+			}
+			else if (boardCopy[y][x + 1] === player && boardCopy[y][x + 3] === player) {
+				// Checks to see if player is trying to get three pieces each apart by one to then create unbeatable trap
+				if (
+					Array.isArray(boardCopy[y][x]) &&
+					Array.isArray(boardCopy[y][x + 2]) &&
+					Array.isArray(boardCopy[y][x + 4])
+				) {
+					indicatorRow.childNodes[x + 4].click();
+					return true;
+				}
+			}
+		}
+	}
+
 	// AI's move prioritization
 	//First checks if it has a winning move and plays it.
 	for (let y = 0; y < HEIGHT; y++) {
 		for (let x = 0; x < WIDTH; x++) {
-			if (_checkForFilled(y, x)) continue;
-
-			if (_checkforWinOrBlock(y, x, 2)) return;
+			if (!_isPlayable(y, x)) continue;
+			if (_isFilled(y, x)) continue;
+			if (_checkForWinOrBlock(y, x, 2)) return;
 		}
 	}
 	//Second checks if it needs to block a winning move from the other player
 	for (let y = 0; y < HEIGHT; y++) {
 		for (let x = 0; x < WIDTH; x++) {
-			if (_checkForFilled(y, x)) continue;
-
-			if (_checkforWinOrBlock(y, x, 1)) return;
+			if (!_isPlayable(y, x)) continue;
+			if (_isFilled(y, x)) continue;
+			if (_checkForWinOrBlock(y, x, 1)) return;
 		}
 	}
-	//Finally it plays the left most it can
+	// Third tries to block any traps being set by player (three pieces with open spots on either side)
 	for (let y = 0; y < HEIGHT; y++) {
 		for (let x = 0; x < WIDTH; x++) {
-			if (_checkForFilled(y, x)) continue;
+			if (!_isPlayable(y, x)) continue;
+			if (_isFilled(y, x)) continue;
+			if (_allowsAccidentalWin(y, x, 1)) continue;
+			if (_checkforTrap(y, x, 1)) return;
+		}
+	}
 
+	//Fourth it plays the center, while still not allowing accidental win setups
+	for (let y = 0; y < HEIGHT; y++) {
+		let x = 3;
+		if (!_isPlayable(y, x)) continue;
+		if (_isFilled(y, x)) break;
+		if (_allowsAccidentalWin(y, x, 1)) break;
+		indicatorRow.childNodes[5].click();
+		return;
+	}
+
+	//Fifth it plays the top most it can from left to right, while still not allowing accidental win setups
+	for (let y = 0; y < HEIGHT; y++) {
+		for (let x = 0; x < WIDTH; x++) {
+			if (!_isPlayable(y, x)) continue;
+			if (_isFilled(y, x)) continue;
+			if (_allowsAccidentalWin(y, x, 1)) continue;
+			indicatorRow.childNodes[x + 2].click();
+			return;
+		}
+	}
+	// Finally it will play wherever as long as it is legal
+	for (let y = 0; y < HEIGHT; y++) {
+		for (let x = 0; x < WIDTH; x++) {
+			if (!_isPlayable(y, x)) continue;
+			if (_isFilled(y, x)) continue;
 			indicatorRow.childNodes[x + 2].click();
 			return;
 		}
 	}
 }
 
+// Copies game board for use in projecting outcomes for AI moves
 function copyBoard(currentBoard) {
 	return currentBoard.map((inner) => inner.slice());
 }
 
+// Starts game by creating games state board, HTML board, scaling board and pieces, and updating scores if present in sessionStorage.
 makeBoard();
 makeHtmlBoard();
 resizeBoard();
