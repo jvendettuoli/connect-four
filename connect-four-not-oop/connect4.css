@@ -4,9 +4,7 @@
 	padding: 0;
 	box-sizing: border-box;
 }
-body {
-	background-color: black;
-}
+
 h1 {
 	display: flex;
 	justify-content: center;
@@ -31,64 +29,17 @@ h1 > div:not(.player-info) {
 	width: 6.5vh;
 	height: 6.5vh;
 	margin: auto;
-	border: ridge 1.5vh var(--p1-color, cyan);
+	border: ridge 1.5vh var(--indicator-piece-color, cyan);
 	border-radius: 50%;
 }
 
-#game-setup {
-	display: flex;
-	justify-content: center;
-	width: 90vw;
-	margin: auto;
-	margin-top: 25px;
-	margin-bottom: 20px;
-	/* font-size: 2vh; */
-}
-button {
-	width: 33%;
-	background-color: transparent;
-	border: solid 1px #00ff00;
-	color: #00ff00;
-	font-family: 'Share Tech Mono', monospace;
-	font-size: 4vh;
+hr {
+	margin: 20px;
+	border-color: #00ff00;
 }
 
-#start-btn {
-	border-left: none;
-	border-right: none;
-	transition: 100ms;
-}
-#start-btn:active {
-	font-size: 4.1vh;
-	color: white;
-	transition: 200ms;
-}
-button:hover {
-	background-color: #00ff0055;
-	transition: 100ms;
-}
-
-#p1-setup:hover {
-	background-color: var(--p1-color, rgba(0, 255, 255, .5));
-}
-#p1-setup:focus {
-	background-color: var(--p1-color, rgba(0, 255, 255, .5));
-	/* height: 10vh; */
-}
-#p2-setup:hover {
-	background-color: var(--p2-color, rgba(255, 0, 255, .5));
-}
-#p2-setup:focus {
-	background-color: var(--p2-color, rgba(255, 0, 255, .5));
-	/* height: 10vh; */
-}
-
-input {
-	width: 20%;
-	height: 5vh;
-	background-color: transparent;
-	padding: 0px;
-	border: none;
+body {
+	background-color: black;
 }
 
 #game {
@@ -114,7 +65,7 @@ input {
 }
 #player1 {
 	margin-right: 20px;
-	color: var(--p1-color, cyan);
+	color: cyan;
 
 	animation-name: border-shift-p1;
 	animation-duration: 2s;
@@ -124,7 +75,7 @@ input {
 }
 #player2 {
 	margin-left: 20px;
-	color: var(--p2-color, magenta);
+	color: magenta;
 	animation-name: border-shift-p2;
 	animation-duration: 2s;
 	animation-timing-function: ease-in-out;
@@ -136,20 +87,20 @@ input {
 }
 
 /* currently only AI button*/
-#ai-btn {
-	width: 10%;
-	font-size: 3vh;
-	/* height: 4vh;
+button {
 	margin: auto;
 	margin-left: 10px;
 	padding-left: 5px;
 	padding-right: 5px;
 	padding-top: 2px;
-	font-size: .75em;
-	transition: 100ms; */
+	background-color: transparent;
+	border: solid 1px #00ff00;
+	color: #00ff00;
+	font-family: 'Share Tech Mono', monospace;
+	transition: 100ms;
 }
-#ai-btn:hover {
-	background-color: var(--p2-color, rgba(255, 0, 255, .5));
+button:hover {
+	background-color: rgba(255, 0, 255, .5);
 	transition: 100ms;
 }
 #board {
@@ -189,7 +140,6 @@ td:not(.column-top-cell) {
 }
 
 .p1 {
-	border-color: var(--p1-color, cyan);
 	animation-name: inner-glow-p1;
 	animation-duration: 3.5s;
 	animation-timing-function: ease-in-out;
@@ -197,8 +147,6 @@ td:not(.column-top-cell) {
 	animation-fill-mode: forwards;
 }
 .p2 {
-	border-color: var(--p2-color, magenta);
-
 	animation-name: inner-glow-p2;
 	animation-duration: 3.5s;
 	animation-timing-function: ease-in-out;
@@ -208,8 +156,7 @@ td:not(.column-top-cell) {
 .piece {
 	height: var(--piece-size);
 	width: var(--piece-size);
-	border-style: ridge;
-	border-width: var(--border-size);
+	border: ridge var(--border-size) var(--indicator-piece-color, cyan);
 	border-radius: 50%;
 	transition: 250ms;
 }
@@ -233,7 +180,6 @@ td:not(.column-top-cell) {
 }
 
 #indicator-piece {
-	border-color: var(--indicator-color);
 	position: absolute;
 	margin-left: 1.35%;
 	background-color: transparent;
@@ -264,7 +210,7 @@ td:not(.column-top-cell) {
 	position: absolute;
 	width: 100%;
 	height: 100%;
-	background-color: var(--p2-color, magenta);
+	background-color: magenta;
 	opacity: 25%;
 	z-index: 1;
 	transition: 250ms;
@@ -296,7 +242,7 @@ td:not(.column-top-cell) {
 		background-color: transparent;
 	}
 	50% {
-		background-color: var(--p1-color, cyan);
+		background-color: cyan;
 	}
 	75% {
 		background-color: transparent;
@@ -314,7 +260,7 @@ td:not(.column-top-cell) {
 		background-color: transparent;
 	}
 	50% {
-		background-color: var(--p2-color, magenta);
+		background-color: magenta;
 	}
 	75% {
 		background-color: transparent;
@@ -327,7 +273,7 @@ td:not(.column-top-cell) {
 /* Player 1 border animation */
 @keyframes border-shift-p1 {
 	0% {
-		border-top: dashed 4px var(--p1-color, cyan);
+		border-top: dashed 4px cyan;
 		border-right: dashed 4px transparent;
 		border-bottom: dashed 4px transparent;
 		border-left: dashed 4px transparent;
@@ -335,7 +281,7 @@ td:not(.column-top-cell) {
 
 	25% {
 		border-top: dashed 4px transparent;
-		border-right: dashed 4px var(--p1-color, cyan);
+		border-right: dashed 4px cyan;
 		border-bottom: dashed 4px transparent;
 		border-left: dashed 4px transparent;
 	}
@@ -343,7 +289,7 @@ td:not(.column-top-cell) {
 	50% {
 		border-top: dashed 4px transparent;
 		border-right: dashed 4px transparent;
-		border-bottom: dashed 4px var(--p1-color, cyan);
+		border-bottom: dashed 4px cyan;
 		border-left: dashed 4px transparent;
 	}
 
@@ -351,11 +297,11 @@ td:not(.column-top-cell) {
 		border-top: dashed 4px transparent;
 		border-right: dashed 4px transparent;
 		border-bottom: dashed 4px transparent;
-		border-left: dashed 4px var(--p1-color, cyan);
+		border-left: dashed 4px cyan;
 	}
 
 	100% {
-		border-top: dashed 4px var(--p1-color, cyan);
+		border-top: dashed 4px cyan;
 		border-right: dashed 4px transparent;
 		border-bottom: dashed 4px transparent;
 		border-left: dashed 4px transparent;
@@ -364,7 +310,7 @@ td:not(.column-top-cell) {
 /* Player 2 border animation */
 @keyframes border-shift-p2 {
 	0% {
-		border-top: dashed 4px var(--p2-color, magenta);
+		border-top: dashed 4px magenta;
 		border-right: dashed 4px transparent;
 		border-bottom: dashed 4px transparent;
 		border-left: dashed 4px transparent;
@@ -374,25 +320,25 @@ td:not(.column-top-cell) {
 		border-top: dashed 4px transparent;
 		border-right: dashed 4px transparent;
 		border-bottom: dashed 4px transparent;
-		border-left: dashed 4px var(--p2-color, magenta);
+		border-left: dashed 4px magenta;
 	}
 
 	50% {
 		border-top: dashed 4px transparent;
 		border-right: dashed 4px transparent;
-		border-bottom: dashed 4px var(--p2-color, magenta);
+		border-bottom: dashed 4px magenta;
 		border-left: dashed 4px transparent;
 	}
 
 	75% {
 		border-top: dashed 4px transparent;
-		border-right: dashed 4px var(--p2-color, magenta);
+		border-right: dashed 4px magenta;
 		border-bottom: dashed 4px transparent;
 		border-left: dashed 4px transparent;
 	}
 
 	100% {
-		border-top: dashed 4px var(--p2-color, magenta);
+		border-top: dashed 4px magenta;
 		border-right: dashed 4px transparent;
 		border-bottom: dashed 4px transparent;
 		border-left: dashed 4px transparent;
